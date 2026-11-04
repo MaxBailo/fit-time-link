@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fit-time</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+         gap: 12px; background: #F7EDE0; color: #93897A; font-family: -apple-system, "Segoe UI", sans-serif; text-align: center; padding: 24px; }
+  .e { font-size: 40px; }
+  button { background: #E8647F; color: #fff; border: none; border-radius: 999px; padding: 12px 22px; font-size: 15px; font-weight: 600; }
+</style>
+</head>
+<body>
+  <div class="e" id="emoji">⏳</div>
+  <div id="msg">Відкриваю застосунок...</div>
+  <button id="retry" hidden onclick="location.reload()">Спробувати ще раз</button>
+
+<script>
+// Постійна адреса застосунку. Сама нічого не показує: бере актуальну адресу тунелю
+// з файлу target.json (його оновлює watchdog при кожному перезапуску) і переходить туди,
+// зберігаючи дані авторизації Telegram (location.hash).
+const REPO = "MaxBailo/fit-time-link";
+
+async function go() {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/target.json?t=${Date.now()}`, {
+      headers: { Accept: "application/vnd.github.raw+json" },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(res.status);
+    const { url } = await res.json();
+    if (!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(url)) throw new Error("bad url");
+    location.replace(url.replace(/\/$/, "") + "/" + location.search + location.hash);
+  } catch (e) {
+    document.getElementById("emoji").textContent = "😕";
+    document.getElementById("msg").textContent = "Застосунок зараз недоступний. Спробуй за хвилину.";
+    document.getElementById("retry").hidden = false;
+  }
+}
+go();
+</script>
+</body>
+</html>
