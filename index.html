@@ -3,23 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#F7EAE7">
 <title>Fit-time</title>
 <style>
-  body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-         gap: 12px; background: #F7EDE0; color: #93897A; font-family: -apple-system, "Segoe UI", sans-serif; text-align: center; padding: 24px; }
-  .e { font-size: 40px; }
-  button { background: #E8647F; color: #fff; border: none; border-radius: 999px; padding: 12px 22px; font-size: 15px; font-weight: 600; }
+  /* Нічого не показуємо: лише фон кольору заставки застосунку, щоб перехід був непомітним */
+  html, body { margin: 0; height: 100%; background: #F7EAE7; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px;
+         font-family: -apple-system, "Segoe UI", sans-serif; color: #B87E7C; text-align: center; }
+  #err { display: none; }
+  #err.show { display: block; }
+  button { margin-top: 10px; background: #E8647F; color: #fff; border: none; border-radius: 999px; padding: 12px 22px; font-size: 15px; font-weight: 600; }
 </style>
 </head>
 <body>
-  <div class="e" id="emoji">⏳</div>
-  <div id="msg">Відкриваю застосунок...</div>
-  <button id="retry" hidden onclick="location.reload()">Спробувати ще раз</button>
+  <div id="err">
+    <div style="font-size: 38px">😕</div>
+    <div style="margin-top: 8px">Застосунок зараз недоступний.<br>Спробуй за хвилину.</div>
+    <button onclick="location.reload()">Спробувати ще раз</button>
+  </div>
 
 <script>
-// Постійна адреса застосунку. Сама нічого не показує: бере актуальну адресу тунелю
-// з файлу target.json (його оновлює watchdog при кожному перезапуску) і переходить туди,
-// зберігаючи дані авторизації Telegram (location.hash).
+// Постійна адреса застосунку. Нічого не показує: бере актуальну адресу тунелю з файлу target.json
+// (його оновлює watchdog при кожному перезапуску) і одразу переходить туди, зберігаючи
+// дані авторизації Telegram (location.hash).
 const REPO = "MaxBailo/fit-time-link";
 
 async function go() {
@@ -33,9 +39,7 @@ async function go() {
     if (!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(url)) throw new Error("bad url");
     location.replace(url.replace(/\/$/, "") + "/" + location.search + location.hash);
   } catch (e) {
-    document.getElementById("emoji").textContent = "😕";
-    document.getElementById("msg").textContent = "Застосунок зараз недоступний. Спробуй за хвилину.";
-    document.getElementById("retry").hidden = false;
+    document.getElementById("err").classList.add("show");
   }
 }
 go();
