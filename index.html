@@ -28,21 +28,36 @@
 // дані авторизації Telegram (location.hash).
 const REPO = "MaxBailo/fit-time-link";
 
-async function go() {
+// Беремо адресу з трьох джерел одразу, перемагає найшвидше: GitHub Pages (без ліміту запитів),
+// raw.githubusercontent.com і GitHub API (60 запитів/год з однієї IP - лише запасний варіант).
+const SOURCES = [
+  () => `${location.origin}${location.pathname.replace(/[^/]*$/, "")}target.json?t=${Date.now()}`,
+  () => `https://raw.githubusercontent.com/${REPO}/main/target.json?t=${Date.now()}`,
+  () => `https://api.github.com/repos/${REPO}/contents/target.json?t=${Date.now()}`,
+];
+
+function fetchUrl(make) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  return fetch(make(), { headers: { Accept: "application/vnd.github.raw+json" }, cache: "no-store", signal: ctrl.signal })
+    .then(async (res) => {
+      if (!res.ok) throw new Error(res.status);
+      const { url } = await res.json();
+      if (!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(url)) throw new Error("bad url");
+      return url;
+    })
+    .finally(() => clearTimeout(timer));
+}
+
+async function go(attempt = 0) {
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/target.json?t=${Date.now()}`, {
-      headers: { Accept: "application/vnd.github.raw+json" },
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(res.status);
-    const { url } = await res.json();
-    if (!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(url)) throw new Error("bad url");
+    const url = await Promise.any(SOURCES.map(fetchUrl));
     location.replace(url.replace(/\/$/, "") + "/" + location.search + location.hash);
   } catch (e) {
+    if (attempt < 1) return setTimeout(() => go(attempt + 1), 800);
     document.getElementById("err").classList.add("show");
   }
-}
-go();
+}go();
 </script>
 </body>
 </html>
