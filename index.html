@@ -43,7 +43,7 @@ function fetchUrl(make) {
     .then(async (res) => {
       if (!res.ok) throw new Error(res.status);
       const { url } = await res.json();
-      if (!/^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(url)) throw new Error("bad url");
+      if (!/^https:\/\/[a-z0-9-]+\.(trycloudflare\.com|ngrok-free\.(dev|app))\/?$/.test(url)) throw new Error("bad url");
       return url;
     })
     .finally(() => clearTimeout(timer));
@@ -52,7 +52,14 @@ function fetchUrl(make) {
 async function go(attempt = 0) {
   try {
     const url = await Promise.any(SOURCES.map(fetchUrl));
-    location.replace(url.replace(/\/$/, "") + "/" + location.search + location.hash);
+    const base = url.replace(/\/$/, "") + "/";
+    if (!/ngrok/.test(base)) { location.replace(base + location.search + location.hash); return; }
+    // ngrok на безкоштовному плані показує сторінку-попередження для звичайного переходу, але не для запиту із заголовком.
+    // Тому беремо HTML застосунку запитом із заголовком і відкриваємо його тут; <base> спрямовує всі файли й /api на ngrok.
+    const res = await fetch(base, { headers: { "ngrok-skip-browser-warning": "1" }, cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    const html = (await res.text()).replace(/<head[^>]*>/i, (m) => `${m}<base href="${base}">`);
+    document.open(); document.write(html); document.close();
   } catch (e) {
     if (attempt < 1) return setTimeout(() => go(attempt + 1), 800);
     document.getElementById("err").classList.add("show");
