@@ -58,7 +58,7 @@ async function go(attempt = 0) {
     // Тому беремо HTML застосунку запитом із заголовком і відкриваємо його тут; <base> спрямовує всі файли й /api на ngrok.
     const res = await fetch(base, { headers: { "ngrok-skip-browser-warning": "1" }, cache: "no-store" });
     if (!res.ok) throw new Error(res.status);
-    let html = (await res.text()).replace(/<head[^>]*>/i, (m) => `${m}<base href="${base}"><script>window.__SHELL=true</script>`);
+    let html = (await res.text()).replace(/<head[^>]*>/i, (m) => `${m}<base href="${base}"><script>window.__SHELL=true<\/script>`);
     // скрипти й стилі теж без попередження ngrok лише із заголовком: тягнемо паралельно й вставляємо в сторінку текстом
     const get = (src) => fetch(new URL(src, base), { headers: { "ngrok-skip-browser-warning": "1" } })
       .then((r) => { if (!r.ok) throw new Error(src); return r.text(); });
@@ -67,13 +67,15 @@ async function go(attempt = 0) {
     html = html.replace(/<link\s+rel="stylesheet"\s+href="(\/static\/[^"]+)"[^>]*>/g, (m, src) => { const k = jobs.length; jobs.push(get(src)); return `\u0000C${k}\u0000`; });
     const texts = await Promise.all(jobs);
     html = html.replace(/\u0000([JC])(\d+)\u0000/g, (m, t, k) => t === "J"
-      ? `<script>${texts[k].replace(/<\/script/gi, "<\\/script")}</script>`
-      : `<style>${texts[k]}</style>`);document.open(); document.write(html); document.close();
+      ? `<script>${texts[k].replace(/<\/script/gi, "<\\/script")}<\/script>`
+      : `<style>${texts[k]}<\/style>`);
+    document.open(); document.write(html); document.close();
   } catch (e) {
     if (attempt < 1) return setTimeout(() => go(attempt + 1), 800);
     document.getElementById("err").classList.add("show");
   }
-}go();
+}
+go();
 </script>
 </body>
 </html>
